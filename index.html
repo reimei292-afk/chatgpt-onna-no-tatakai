@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>チャットGPT・女の戦い — Stage 01</title>
+<style>
+:root{color-scheme:dark;--gold:#e8c978;--panel:#18251e}
+*{box-sizing:border-box}body{margin:0;background:#101813;color:#f4f0e5;font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif}
+header{padding:16px 20px;background:#17231b;border-bottom:1px solid #56654f;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+h1{font-size:clamp(18px,3vw,27px);margin:0;color:var(--gold)}p{margin:5px 0 0;color:#c3c9ba;font-size:13px}
+button{background:#d9bd70;color:#1a2118;border:0;border-radius:8px;padding:10px 16px;font-weight:800;cursor:pointer}button.secondary{background:#35483a;color:#fff}
+main{max-width:1200px;margin:auto;padding:16px;display:grid;gap:14px}.stats{display:flex;gap:8px;flex-wrap:wrap}.stat{background:#1b2a20;border:1px solid #354b39;border-radius:9px;padding:9px 12px;font-size:13px}.stat b{color:var(--gold)}
+canvas{display:block;width:100%;height:auto;aspect-ratio:16/9;background:#9da66e;border:1px solid #4d6044;border-radius:12px;box-shadow:0 12px 30px #0005}
+.bottom{display:grid;grid-template-columns:1.2fr 1fr;gap:14px}.panel{background:#18251e;border:1px solid #35483a;border-radius:10px;padding:14px}.panel h2{font-size:15px;color:var(--gold);margin:0 0 8px}.roster{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}.person{background:#25352a;border-radius:7px;padding:8px;font-size:12px}.person span{display:block;color:#b7c3b5;margin-top:3px}.log{font-size:12px;line-height:1.7;color:#d1d9cb;max-height:190px;overflow:auto}.hint{font-size:12px;color:#b8c4b6;line-height:1.65}
+@media(max-width:700px){.bottom{grid-template-columns:1fr}.roster{grid-template-columns:repeat(2,minmax(0,1fr))}header{align-items:flex-start}}
+</style>
+</head>
+<body>
+<header><div><h1>チャットGPT・女の戦い</h1><p>STAGE 01 — 草原の櫓陣　｜　若い日本人女性の侍女たちによる模擬合戦</p></div><div><button id="start">戦闘開始</button> <button class="secondary" id="reset">再戦</button></div></header>
+<main>
+<div class="stats"><div class="stat">味方 <b id="ally">20</b> 人</div><div class="stat">敵軍 <b id="enemy">20</b> 人</div><div class="stat">経過 <b id="time">00:00</b></div><div class="stat">状態 <b id="state">待機中</b></div></div>
+<canvas id="field" width="960" height="540" aria-label="草原の戦場"></canvas>
+<div class="bottom">
+<section class="panel"><h2>侍女名簿 — 初期キャスト8人</h2><div class="roster" id="roster"></div><p class="hint">共通衣装：銀色のティアラ、白いレースキャミソール、黒いテーパードパンツ、黒いパンプス、黒い細幅ベルトと長方形の銀色バックル。髪色は黒または茶色。</p></section>
+<section class="panel"><h2>戦況記録</h2><div class="log" id="log">平原に両軍が布陣。味方陣地には櫓が2基、敵陣地には井闌が2基ある。戦闘開始を押してください。</div><p class="hint">弓兵は遠距離攻撃、懐刀兵は接近して刺突のみ。戦闘はゲーム内の模擬戦です。血の演出は控えめな赤いエフェクトとして表現します。</p></section>
+</div>
+</main>
+<script>
+(()=>{
+const canvas=document.querySelector('#field'),ctx=canvas.getContext('2d');
+const names=['さくら','あやか','みゆ','りな','ひな','まい','まな','なな'];
+const looks=[['黒髪','低いまとめ髪'],['茶髪','ポニーテール'],['黒髪','ボブ'],['茶髪','まとめ髪'],['黒髪','低いポニー'],['茶髪','ウェーブ'],['黒髪','短いボブ'],['茶髪','ロング']];
+document.querySelector('#roster').innerHTML=names.map((n,i)=>'<div class="person">✦ '+n+'<span>'+looks[i].join('・')+'</span><span>'+(i%2?'懐刀兵':'弓兵')+'</span></div>').join('');
+let units=[],effects=[],running=false,elapsed=0,last=0,raf=0,allyTowerHp=[100,100],enemyTowerHp=[100,100];
+const rand=(a,b)=>a+Math.random()*(b-a);
+function makeArmy(side){return Array.from({length:20},(_,i)=>({side,i,x:side===0?rand(95,245):rand(715,865),y:rand(105,440),hp:100,alive:true,type:i%2?'knife':'bow',speed:rand(13,21),cool:rand(0,1.2),hair:(i%8<4?'#171513':'#68452d'),name:names[i%8],pose:0,stain:0}));}
+function reset(){cancelAnimationFrame(raf);units=[...makeArmy(0),...makeArmy(1)];effects=[];elapsed=0;running=false;last=0;allyTowerHp=[100,100];enemyTowerHp=[100,100];document.querySelector('#state').textContent='待機中';document.querySelector('#log').textContent='両軍が平原に布陣。戦闘開始を押してください。';updateStats();draw();}
+function updateStats(){document.querySelector('#ally').textContent=units.filter(u=>u.side===0&&u.alive).length;document.querySelector('#enemy').textContent=units.filter(u=>u.side===1&&u.alive).length;document.querySelector('#time').textContent=String(Math.floor(elapsed/60)).padStart(2,'0')+':'+String(Math.floor(elapsed%60)).padStart(2,'0');}
+function text(s){let l=document.querySelector('#log');l.textContent=s+'\n'+l.textContent;l.textContent=l.textContent.split('\n').slice(0,9).join('\n');}
+function tower(x,y,enemy){ctx.save();ctx.translate(x,y);ctx.fillStyle=enemy?'#795c43':'#8a744b';ctx.fillRect(-20,-6,40,22);ctx.fillStyle='#b6a077';ctx.fillRect(-25,-27,50,22);ctx.fillStyle='#57412e';for(let j=-2;j<=2;j++)ctx.fillRect(j*9-2,-25,4,18);ctx.fillStyle='#30271e';ctx.fillRect(-27,-31,54,5);ctx.restore();}
+function ground(){let g=ctx.createLinearGradient(0,0,0,540);g.addColorStop(0,'#a9b77a');g.addColorStop(1,'#687c4b');ctx.fillStyle=g;ctx.fillRect(0,0,960,540);for(let i=0;i<120;i++){ctx.strokeStyle=i%2?'#82975c':'#b5bd83';ctx.lineWidth=1;ctx.beginPath();let x=(i*83)%960,y=(i*47)%540;ctx.moveTo(x,y);ctx.lineTo(x+rand(-3,3),y-5);ctx.stroke();}ctx.fillStyle='#6d8b53';ctx.fillRect(0,0,960,540);ctx.globalAlpha=.22;for(let i=0;i<180;i++){ctx.fillStyle=i%2?'#d7d69a':'#344c32';ctx.fillRect((i*67)%960,(i*41)%540,rand(2,5),rand(2,5));}ctx.globalAlpha=1;
+tower(85,115,false);tower(85,420,false);tower(875,115,true);tower(875,420,true);
+ctx.strokeStyle='#d8d2a0';ctx.setLineDash([7,8]);ctx.beginPath();ctx.moveTo(480,40);ctx.lineTo(480,500);ctx.stroke();ctx.setLineDash([]);
+ctx.fillStyle='#e8e1c1';ctx.font='bold 14px sans-serif';ctx.fillText('味方陣地',24,32);ctx.fillText('敵陣地',860,32);
+}
+function drawUnit(u){if(!u.alive)return;ctx.save();ctx.translate(u.x,u.y);ctx.fillStyle='#17201855';ctx.beginPath();ctx.ellipse(0,8,9,4,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=u.side===0?'#eee9df':'#d9c9b9';ctx.beginPath();ctx.moveTo(-5,-1);ctx.lineTo(-6,-17);ctx.lineTo(6,-17);ctx.lineTo(5,-1);ctx.fill();ctx.fillStyle='#171717';ctx.fillRect(-5,-2,4,9);ctx.fillRect(1,-2,4,9);ctx.fillStyle=u.hair;ctx.beginPath();ctx.arc(0,-21,5.2,0,Math.PI*2);ctx.fill();ctx.fillStyle='#cfd0d4';ctx.fillRect(-3,-27,6,2);ctx.fillStyle='#e4e6e8';ctx.fillRect(-2,-28,4,2);
+if(u.type==='bow'){ctx.strokeStyle='#5a3925';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(8,-12,5,-1.2,1.2);ctx.stroke();}else{ctx.strokeStyle='#d7d8d8';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(5,-12);ctx.lineTo(13,-8);ctx.stroke();}
+if(u.stain>0){ctx.fillStyle='rgba(155,20,28,'+Math.min(.45,u.stain/220)+')';ctx.beginPath();ctx.arc(-2,-11,4,0,Math.PI*2);ctx.fill();}ctx.fillStyle='#f7f2e8';ctx.fillRect(-8,-34,16,2);ctx.restore();}
+function draw(){ground();units.slice().sort((a,b)=>a.y-b.y).forEach(drawUnit);effects.forEach(e=>{ctx.globalAlpha=Math.max(0,e.life/0.5);ctx.fillStyle='#9f2028';ctx.beginPath();ctx.arc(e.x,e.y,e.r*(1-e.life),0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;});ctx.fillStyle='#172018cc';ctx.fillRect(14,494,250,30);ctx.fillStyle='#fff';ctx.font='12px sans-serif';ctx.fillText('弓兵：遠距離　／　懐刀兵：刺突のみ',24,513);}
+function tick(t){if(!running)return;let dt=Math.min(.04,(t-last)/1000||0);last=t;elapsed+=dt;let living=units.filter(u=>u.alive);
+for(const u of living){u.cool-=dt;u.stain=Math.max(0,u.stain-dt*2);let foes=living.filter(v=>v.side!==u.side);if(!foes.length)break;let target=foes.reduce((a,b)=>Math.hypot(a.x-u.x,a.y-u.y)<Math.hypot(b.x-u.x,b.y-u.y)?a:b);let d=Math.hypot(target.x-u.x,target.y-u.y),range=u.type==='bow'?150:20;
+if(d>range){let step=u.speed*dt;u.x+=(target.x-u.x)/d*step;u.y+=(target.y-u.y)/d*step;}else if(u.cool<=0){u.cool=u.type==='bow'?1.4:.8;target.hp-=u.type==='bow'?rand(9,17):rand(13,23);target.stain=30;effects.push({x:target.x,y:target.y-10,life:.5,r:rand(2,6)});if(target.hp<=0){target.alive=false;text(target.name+'が模擬戦闘で戦闘不能。');}else if(Math.random()<.1){text((u.type==='bow'?'矢が命中。':'懐刀の刺突が命中。')+' '+target.name+'が声を上げた。');}}
+u.x=Math.max(28,Math.min(932,u.x));u.y=Math.max(60,Math.min(480,u.y));}
+effects.forEach(e=>e.life-=dt);effects=effects.filter(e=>e.life>0);updateStats();draw();
+let a=units.some(u=>u.alive&&u.side===0),b=units.some(u=>u.alive&&u.side===1);if(!a||!b){running=false;document.querySelector('#state').textContent=a?'味方勝利':'敵軍勝利';text(a?'味方軍が勝利した。':'敵軍が勝利した。');return;}raf=requestAnimationFrame(tick);}
+document.querySelector('#start').onclick=()=>{if(running)return;running=true;last=performance.now();document.querySelector('#state').textContent='戦闘中';text('戦闘開始！ 20対20の模擬合戦が始まった。');raf=requestAnimationFrame(tick);};
+document.querySelector('#reset').onclick=reset;reset();
+})();
+</script>
+</body></html>
