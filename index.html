@@ -14,7 +14,7 @@
 <div class="bar"><div class="chip">視点 <b>王</b></div><div class="chip">周囲の侍女 <b id="count">100</b> 人</div><div class="chip">移動 <b>W A S D</b></div><div class="chip">視点操作 <b>マウス / ← →</b></div><div class="chip">走る <b>Shift</b></div><div class="chip">視点感度 <b id="sens">標準</b></div></div>
 <div id="screen"><canvas id="field" width="1200" height="675" aria-label="王の一人称視点から見る草原と動き回る侍女たち"></canvas><div class="overlay"><div class="cross"></div><div class="right">王の視点<br><span id="pos">位置 0, 0</span></div><div class="help">クリックで視点操作を有効化（PC）<br>WASD：草原を歩く／Shift：走る<br>スマホ：画面を左右になぞって向きを変え、WASDの代わりに下の移動ボタン</div></div></div>
 <div class="bar controls" style="justify-content:center"><button id="forward">前へ歩く</button><button id="left" class="secondary">左へ</button><button id="back" class="secondary">後ろへ</button><button id="rightBtn" class="secondary">右へ</button><button id="turnL" class="secondary">↶ 左を見る</button><button id="turnR" class="secondary">右を見る ↷</button></div>
-<div class="bottom"><section class="panel"><h2>侍女名簿 — 固有の外見8人</h2><div class="roster" id="roster"></div><p class="note">共通衣装：銀色のティアラ、白いレースキャミソール、黒い細幅ベルトと長方形の銀色バックル、黒いテーパードパンツ、黒いパンプス。各キャラクターは髪型・髪色・体格・動作に差をつけています。</p></section><section class="panel"><h2>戦場の様子</h2><div class="log" id="log">草原に侍女たちが集まり、それぞれ歩いたり、仲間とすれ違ったり、陣地の間を移動しています。王の視点で自由に見回せます。</div><p class="note">この版は一人称カメラと多数キャラクターの移動を試すプロトタイプです。人物は仮描画で、以前の高画質キャラクター画像そのものはまだ組み込まれていません。</p></section></div>
+<div class="bottom"><section class="panel"><h2>侍女名簿 — 固有の外見8人</h2><div class="roster" id="roster"></div><p class="note">共通衣装：銀色のティアラ、白いレースキャミソール、黒い細幅ベルトと長方形の銀色バックル、黒いテーパードパンツ、黒いパンプス。各キャラクターは髪型・髪色・体格・動作に差をつけています。</p></section><section class="panel"><h2>戦場の様子</h2><div class="log" id="log">草原に侍女たちが集まり、それぞれ歩いたり、仲間とすれ違ったり、陣地の間を移動しています。王の視点で自由に見回せます。</div><p class="note">この版は8人の髪型差・顔のパーツ・衣装の描き込みを増やした暫定表現です。写真品質の独立キャラクター画像素材はまだ未統合で、今後の改善対象です。</p></section></div>
 </main>
 <script>
 (()=> {
@@ -39,29 +39,70 @@ function sky(){let g=x.createLinearGradient(0,0,0,H*.7);g.addColorStop(0,'#8eb6c
 x.strokeStyle='#b4bf7b';x.lineWidth=1;for(let z=3;z<100;z+=3){let p=project(camera.x-85,camera.z+z);let q=project(camera.x+85,camera.z+z);if(p&&q){x.beginPath();x.moveTo(p.x,p.y);x.lineTo(q.x,q.y);x.stroke();}}for(let i=-15;i<=15;i++){let p=project(camera.x+i*4,camera.z+4),q=project(camera.x+i*16,camera.z+100);if(p&&q){x.beginPath();x.moveTo(p.x,p.y);x.lineTo(q.x,q.y);x.stroke();}}
 }
 function tower(wx,wz,enemy){let p=project(wx,wz);if(!p)return;let s=p.scale*.15;x.save();x.translate(p.x,p.y);x.scale(s,s);x.fillStyle='#5e4a33';x.fillRect(-85,-95,170,95);x.fillStyle='#9c8358';x.fillRect(-105,-150,210,65);x.fillStyle='#5b472f';for(let i=-3;i<=3;i++)x.fillRect(i*27-5,-147,10,43);x.fillStyle='#3e3326';x.fillRect(-115,-160,230,12);x.fillStyle=enemy?'#a04a3d':'#dfd0a0';x.fillRect(-18,-195,36,35);x.restore();}
-function drawPerson(p){let a=looks[p.k],dx=p.x-camera.x,dz=p.z-camera.z;let dist=Math.hypot(dx,dz);if(dist>95)return;let ang=Math.atan2(dx,dz)-camera.yaw;while(ang>Math.PI)ang-=Math.PI*2;while(ang<-Math.PI)ang+=Math.PI*2;if(Math.abs(ang)>1.18)return;let rz=dist*Math.cos(ang);if(rz<.8)return;let s=580/rz,px=W/2+Math.tan(ang)*580,base=H*.47+1.7*s,ht= a.height*s*.67; if(base>H+100||base<0)return;let w=ht*.27;let stride=Math.sin(frame*5+p.phase)*w*.22,walk=Math.sin(frame*5+p.phase)*.16;
-x.save();x.translate(px,base);x.scale(Math.min(3.2,Math.max(.18,s/95)),Math.min(3.2,Math.max(.18,s/95)));
-// shadow
-x.fillStyle='#1c2a1a55';x.beginPath();x.ellipse(0,2,14,4,0,0,Math.PI*2);x.fill();
-// black tapered trousers and shoes
-x.fillStyle='#171918';x.beginPath();x.moveTo(-8,-ht*.36);x.lineTo(-1,-ht*.36);x.lineTo(-2+stride,-3);x.lineTo(-8+stride,-3);x.closePath();x.fill();x.beginPath();x.moveTo(1,-ht*.36);x.lineTo(8,-ht*.36);x.lineTo(8-stride,-3);x.lineTo(2-stride,-3);x.closePath();x.fill();x.fillStyle='#090b0a';x.fillRect(-10+stride,-4,9,4);x.fillRect(2-stride,-4,9,4);
-// fitted white lace camisole
-x.fillStyle=a.top;x.beginPath();x.moveTo(-10,-ht*.38);x.lineTo(-12,-ht*.72);x.lineTo(-8,-ht*.79);x.lineTo(-4,-ht*.75);x.lineTo(4,-ht*.75);x.lineTo(8,-ht*.79);x.lineTo(12,-ht*.72);x.lineTo(10,-ht*.38);x.closePath();x.fill();
-// lace scallops and straps
-x.strokeStyle='#c8c1b7';x.lineWidth=1.4;x.beginPath();x.moveTo(-8,-ht*.77);x.quadraticCurveTo(0,-ht*.70,8,-ht*.77);x.stroke();x.strokeStyle='#fff';x.lineWidth=1.5;x.beginPath();x.moveTo(-6,-ht*.78);x.lineTo(-8,-ht*.87);x.moveTo(6,-ht*.78);x.lineTo(8,-ht*.87);x.stroke();
-// belt must stay slim, rectangular silver buckle
-x.fillStyle='#111312';x.fillRect(-10,-ht*.4,20,4);x.fillStyle='#c5cbd0';x.fillRect(-2.3,-ht*.4,4.6,4);x.fillStyle='#69737a';x.fillRect(-1.2,-ht*.39,2.4,2.2);
-// arms
-x.strokeStyle='#e4d9cd';x.lineWidth=4;x.lineCap='round';x.beginPath();x.moveTo(-9,-ht*.7);x.lineTo(-13,-ht*.49+walk*5);x.moveTo(9,-ht*.7);x.lineTo(13,-ht*.49-walk*5);x.stroke();
-// neck and face
-x.fillStyle='#e7c5ac';x.fillRect(-3,-ht*.91,6,ht*.12);x.fillStyle='#f0cfb8';x.beginPath();x.ellipse(0,-ht*.96,ht*.105,ht*.13,0,0,Math.PI*2);x.fill();
-// hair back / style
-x.fillStyle=a.hair;x.beginPath();x.arc(0,-ht*.99,ht*.12,Math.PI,Math.PI*2);x.lineTo(ht*.1,-ht*.9);if(p.k===1||p.k===4||p.k===7){x.lineTo(ht*.08,-ht*.73);x.lineTo(ht*.03,-ht*.79);}else if(p.k===2||p.k===6){x.lineTo(ht*.1,-ht*.88);x.lineTo(-ht*.1,-ht*.88);}else{x.lineTo(ht*.08,-ht*.89);x.lineTo(-ht*.08,-ht*.89);}x.closePath();x.fill();
-// tiny silver tiara
-x.fillStyle='#d9dce0';x.beginPath();x.moveTo(-ht*.075,-ht*1.075);x.lineTo(-ht*.05,-ht*1.13);x.lineTo(-ht*.015,-ht*1.09);x.lineTo(ht*.02,-ht*1.14);x.lineTo(ht*.06,-ht*1.075);x.closePath();x.fill();x.strokeStyle='#aeb7bf';x.lineWidth=1;x.stroke();
-// role prop: bow or short dagger, no slashing
-if(a.role==='弓兵'){x.strokeStyle='#6e492c';x.lineWidth=2;x.beginPath();x.arc(14,-ht*.62,7,-1.2,1.2);x.stroke();x.strokeStyle='#e0d6b5';x.lineWidth=.6;x.beginPath();x.moveTo(17,-ht*.69);x.lineTo(17,-ht*.55);x.stroke();}else{x.strokeStyle='#c9d0d5';x.lineWidth=2;x.beginPath();x.moveTo(12,-ht*.6);x.lineTo(18,-ht*.51);x.stroke();x.strokeStyle='#555d61';x.lineWidth=1.5;x.beginPath();x.moveTo(11,-ht*.61);x.lineTo(14,-ht*.57);x.stroke();}
-x.restore();
+function drawPerson(p){
+ const a=looks[p.k],dx=p.x-camera.x,dz=p.z-camera.z,dist=Math.hypot(dx,dz);
+ if(dist>95)return;
+ let ang=Math.atan2(dx,dz)-camera.yaw;
+ while(ang>Math.PI)ang-=Math.PI*2;while(ang<-Math.PI)ang+=Math.PI*2;
+ if(Math.abs(ang)>1.18)return;
+ const rz=dist*Math.cos(ang);if(rz<.8)return;
+ const focal=580,px=W/2+Math.tan(ang)*focal,unit=(focal/rz)*a.height*.67/150,base=H*.47+1.7*(focal/rz);
+ if(base>H+100||base<0||unit<.07)return;
+ const stride=Math.sin(frame*5+p.phase)*3.4,walk=Math.sin(frame*5+p.phase)*2.2;
+ x.save();x.translate(px,base);x.scale(unit,unit);
+ // Ground shadow
+ x.fillStyle='#1c2a1a66';x.beginPath();x.ellipse(0,2,17,4,0,0,Math.PI*2);x.fill();
+ // Shoes and tailored tapered trousers
+ x.fillStyle='#080a09';
+ x.beginPath();x.moveTo(-8+stride,-4);x.lineTo(1+stride,-4);x.lineTo(2,-12);x.lineTo(-9,-12);x.closePath();x.fill();
+ x.beginPath();x.moveTo(2-stride,-4);x.lineTo(11-stride,-4);x.lineTo(12,-12);x.lineTo(3,-12);x.closePath();x.fill();
+ x.fillStyle='#181a19';
+ x.beginPath();x.moveTo(-9,-55);x.lineTo(-1,-55);x.lineTo(1+stride,-9);x.lineTo(-9+stride,-9);x.closePath();x.fill();
+ x.beginPath();x.moveTo(1,-55);x.lineTo(9,-55);x.lineTo(12-stride,-9);x.lineTo(3-stride,-9);x.closePath();x.fill();
+ // Trouser seams and subtle fabric highlights
+ x.strokeStyle='#333735';x.lineWidth=.7;x.beginPath();x.moveTo(-5,-53);x.lineTo(-5+stride*.3,-14);x.moveTo(5,-53);x.lineTo(6-stride*.3,-14);x.stroke();
+ // White lace camisole with fitted waist
+ x.fillStyle='#f6f1e9';x.beginPath();x.moveTo(-9,-55);x.lineTo(-13,-94);x.lineTo(-9,-111);x.lineTo(-4,-105);x.lineTo(4,-105);x.lineTo(9,-111);x.lineTo(13,-94);x.lineTo(9,-55);x.closePath();x.fill();
+ x.fillStyle='#e7dfd3';x.beginPath();x.moveTo(-11,-96);x.lineTo(-8,-101);x.lineTo(-4,-97);x.lineTo(0,-101);x.lineTo(4,-97);x.lineTo(8,-101);x.lineTo(11,-96);x.lineTo(9,-89);x.lineTo(-9,-89);x.closePath();x.fill();
+ // lace embroidery and straps
+ x.strokeStyle='#c9c0b4';x.lineWidth=.8;
+ for(let yy=-93;yy<=-72;yy+=5){x.beginPath();x.moveTo(-8,yy);x.quadraticCurveTo(-4,yy-2,0,yy);x.quadraticCurveTo(4,yy+2,8,yy);x.stroke();}
+ x.strokeStyle='#fff';x.lineWidth=2;x.beginPath();x.moveTo(-7,-105);x.lineTo(-8,-119);x.moveTo(7,-105);x.lineTo(8,-119);x.stroke();
+ // Exact shared slim black belt and rectangular silver buckle
+ x.fillStyle='#111312';x.fillRect(-10,-57,20,4);
+ x.fillStyle='#c8cdd1';x.fillRect(-2.8,-58,5.6,5.5);x.strokeStyle='#596269';x.lineWidth=.65;x.strokeRect(-2.8,-58,5.6,5.5);
+ // Arms and hands
+ x.strokeStyle='#e9cbb5';x.lineWidth=4;x.lineCap='round';x.beginPath();
+ x.moveTo(-11,-99);x.lineTo(-15,-77+walk);x.lineTo(-13+walk,-61);x.moveTo(11,-99);x.lineTo(15,-77-walk);x.lineTo(13-walk,-61);x.stroke();
+ x.fillStyle='#e9cbb5';x.beginPath();x.ellipse(-13+walk,-60,2.4,3.4,0,0,Math.PI*2);x.ellipse(13-walk,-60,2.4,3.4,0,0,Math.PI*2);x.fill();
+ // Neck, face, ears
+ x.fillStyle='#e4bea5';x.fillRect(-3,-126,6,12);
+ x.fillStyle='#e9c7b0';x.beginPath();x.ellipse(0,-134,9.2,12.5,0,0,Math.PI*2);x.fill();
+ x.fillStyle='#d8ae95';x.beginPath();x.ellipse(-9,-134,1.6,2.5,0,0,Math.PI*2);x.ellipse(9,-134,1.6,2.5,0,0,Math.PI*2);x.fill();
+ // Eyes, eyebrows, nose and lips make the face readable at close range
+ x.strokeStyle='#392820';x.lineWidth=1.05;x.beginPath();x.moveTo(-6.5,-137);x.quadraticCurveTo(-4.4,-139,-2.4,-137);x.moveTo(2.4,-137);x.quadraticCurveTo(4.4,-139,6.5,-137);x.stroke();
+ x.fillStyle='#241d1a';x.beginPath();x.ellipse(-4.5,-136.5,1.15,1.45,0,0,Math.PI*2);x.ellipse(4.5,-136.5,1.15,1.45,0,0,Math.PI*2);x.fill();
+ x.strokeStyle='#b98575';x.lineWidth=.65;x.beginPath();x.moveTo(0,-135);x.lineTo(-.5,-131.5);x.moveTo(-2.2,-128.8);x.quadraticCurveTo(0,-127.7,2.2,-128.8);x.stroke();
+ // Hair cap and individualized silhouettes
+ x.fillStyle=a.hair;x.beginPath();x.ellipse(0,-140,10.2,8.6,0,Math.PI,Math.PI*2);x.lineTo(10,-134);
+ if(p.k===1){x.bezierCurveTo(14,-130,13,-115,7,-108);x.lineTo(4,-113);x.lineTo(7,-130);}
+ else if(p.k===4){x.bezierCurveTo(12,-128,11,-116,5,-112);x.lineTo(3,-122);}
+ else if(p.k===5||p.k===7){x.bezierCurveTo(15,-129,15,-114,9,-105);x.lineTo(6,-111);x.lineTo(8,-128);}
+ else if(p.k===2||p.k===6){x.lineTo(9,-126);x.lineTo(8,-118);x.lineTo(5,-119);x.lineTo(3,-128);x.lineTo(-3,-128);x.lineTo(-5,-119);x.lineTo(-8,-118);x.lineTo(-9,-126);}
+ else {x.lineTo(9,-126);x.lineTo(7,-117);x.lineTo(4,-121);x.lineTo(2,-128);x.lineTo(-3,-128);x.lineTo(-6,-119);x.lineTo(-9,-126);}
+ x.closePath();x.fill();
+ // Bangs and hair highlights vary by character
+ x.fillStyle=a.hair;x.beginPath();
+ if(p.k===2||p.k===6){x.moveTo(-9,-141);x.quadraticCurveTo(-6,-148,-2,-140);x.quadraticCurveTo(1,-146,3,-140);x.quadraticCurveTo(7,-146,9,-139);x.lineTo(7,-134);x.lineTo(4,-137);x.lineTo(1,-133);x.lineTo(-2,-137);x.lineTo(-5,-133);x.lineTo(-7,-137);x.closePath();}
+ else {x.moveTo(-9,-141);x.quadraticCurveTo(-6,-147,-3,-140);x.quadraticCurveTo(0,-146,2,-140);x.quadraticCurveTo(6,-145,9,-139);x.lineTo(7,-134);x.lineTo(4,-137);x.lineTo(1,-133);x.lineTo(-1,-137);x.lineTo(-4,-133);x.lineTo(-7,-137);x.closePath();}
+ x.fill();
+ x.strokeStyle='#ffffff33';x.lineWidth=.8;x.beginPath();x.moveTo(-6,-144);x.quadraticCurveTo(-4,-142,-5,-138);x.moveTo(3,-145);x.quadraticCurveTo(6,-142,5,-139);x.stroke();
+ // Silver tiara shared by all eight
+ x.fillStyle='#d8dde2';x.beginPath();x.moveTo(-7.5,-145);x.lineTo(-5,-151);x.lineTo(-2,-147);x.lineTo(0,-153);x.lineTo(3,-147);x.lineTo(6,-151);x.lineTo(7.5,-145);x.closePath();x.fill();x.strokeStyle='#9da9b2';x.lineWidth=.65;x.stroke();
+ // Distinct equipment silhouettes by role
+ if(a.role==='弓兵'){x.strokeStyle='#6e492c';x.lineWidth=1.8;x.beginPath();x.arc(16,-88,7,-1.2,1.2);x.stroke();x.strokeStyle='#e0d6b5';x.lineWidth=.6;x.beginPath();x.moveTo(18,-94);x.lineTo(18,-82);x.stroke();}
+ else{x.strokeStyle='#c9d0d5';x.lineWidth=2;x.beginPath();x.moveTo(14,-85);x.lineTo(19,-75);x.stroke();x.strokeStyle='#555d61';x.lineWidth=1.5;x.beginPath();x.moveTo(12,-86);x.lineTo(16,-83);x.stroke();}
+ x.restore();
 }
 function draw(){frame+=.016;sky();tower(-65,48,false);tower(65,48,true);let visible=people.slice().sort((a,b)=>Math.hypot(b.x-camera.x,b.z-camera.z)-Math.hypot(a.x-camera.x,a.z-camera.z));visible.forEach(drawPerson);let p=project(camera.x,camera.z+10);document.querySelector('#pos').textContent='位置 '+camera.x.toFixed(1)+', '+camera.z.toFixed(1);document.querySelector('#count').textContent=people.length;}
 function update(dt){let move=(keys.ShiftLeft||keys.ShiftRight)?12:6;let f=(keys.KeyW?1:0)-(keys.KeyS?1:0),side=(keys.KeyD?1:0)-(keys.KeyA?1:0);camera.x+= (Math.sin(camera.yaw)*f+Math.cos(camera.yaw)*side)*move*dt;camera.z+=(Math.cos(camera.yaw)*f-Math.sin(camera.yaw)*side)*move*dt;camera.x=Math.max(-72,Math.min(72,camera.x));camera.z=Math.max(-62,Math.min(62,camera.z));
