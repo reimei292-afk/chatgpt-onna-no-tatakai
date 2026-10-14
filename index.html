@@ -14,7 +14,7 @@
 <div class="bar"><div class="chip">視点 <b>王</b></div><div class="chip">周囲の侍女 <b id="count">100</b> 人</div><div class="chip">移動 <b>W A S D</b></div><div class="chip">視点操作 <b>マウス / ← →</b></div><div class="chip">走る <b>Shift</b></div><div class="chip">視点感度 <b id="sens">標準</b></div></div>
 <div id="screen"><canvas id="field" width="1200" height="675" aria-label="王の一人称視点から見る草原と動き回る侍女たち"></canvas><div class="overlay"><div class="cross"></div><div class="right">王の視点<br><span id="pos">位置 0, 0</span></div><div class="help">クリックで視点操作を有効化（PC）<br>WASD：草原を歩く／Shift：走る<br>スマホ：画面を左右になぞって向きを変え、WASDの代わりに下の移動ボタン</div></div></div>
 <div class="bar controls" style="justify-content:center"><button id="forward">前へ歩く</button><button id="left" class="secondary">左へ</button><button id="back" class="secondary">後ろへ</button><button id="rightBtn" class="secondary">右へ</button><button id="turnL" class="secondary">↶ 左を見る</button><button id="turnR" class="secondary">右を見る ↷</button></div>
-<div class="bottom"><section class="panel"><h2>侍女名簿 — 固有の外見8人</h2><div class="roster" id="roster"></div><p class="note">共通衣装：銀色のティアラ、白いレースキャミソール、黒い細幅ベルトと長方形の銀色バックル、黒いテーパードパンツ、黒いパンプス。各キャラクターは髪型・髪色・体格・動作に差をつけています。</p></section><section class="panel"><h2>戦場の様子</h2><div class="log" id="log">草原に侍女たちが集まり、それぞれ歩いたり、仲間とすれ違ったり、陣地の間を移動しています。王の視点で自由に見回せます。</div><p class="note">さくらの透過キャラクター素材は開始位置の正面近くに配置し、画像読み込み完了後に再描画します。2人目以降の独立した高画質素材はリポジトリ内にまだないため、既存素材が追加されるまで仮描画です。</p></section></div>
+<div class="bottom"><section class="panel"><h2>侍女名簿 — 固有の外見8人</h2><div class="roster" id="roster"></div><p class="note">共通衣装：銀色のティアラ、白いレースキャミソール、黒い細幅ベルトと長方形の銀色バックル、黒いテーパードパンツ、黒いパンプス。各キャラクターは髪型・髪色・体格・動作に差をつけています。</p></section><section class="panel"><h2>戦場の様子</h2><div class="log" id="log">草原に侍女たちが集まり、それぞれ歩いたり、仲間とすれ違ったり、陣地の間を移動しています。王の視点で自由に見回せます。</div><p class="note">さくらの既存透過素材に8段階の歩行リズムとカメラ相対の正面・斜め・側面・背面表示を追加しました。現在の元画像は正面立ち姿1枚のため、側面・背面は投影表現であり、専用の描き起こし角度素材ではありません。</p></section></div>
 </main>
 <script>
 (()=> {
@@ -49,7 +49,30 @@ function drawPerson(p){
  const rz=dist*Math.cos(ang);if(rz<.8)return;
  const focal=580,px=W/2+Math.tan(ang)*focal,unit=(focal/rz)*a.height*.67/150,base=H*.47+1.7*(focal/rz);
  if(base>H+100||base<0||unit<.07)return;
- if(p.id===0 && sakuraSprite.complete && sakuraSprite.naturalWidth){const sh=Math.min(500,Math.max(8,(focal/rz)*3.1)),sw=sh*(sakuraSprite.naturalWidth/sakuraSprite.naturalHeight);x.save();x.drawImage(sakuraSprite,px-sw/2,base-sh,sw,sh);x.restore();return;}
+ if(p.id===0 && sakuraSprite.complete && sakuraSprite.naturalWidth){
+  // Use the existing approved Sakura cutout in the live field. The source is a single
+  // front-view image, so directional poses are presented as camera-relative sprite
+  // views (mirrored side, foreshortened diagonal, and reverse-facing silhouette) until
+  // authored side/back source art is available; no new character design is substituted.
+  const walkFrame=Math.floor((frame*9+p.phase*1.7)%8),walkPhase=(walkFrame/8)*Math.PI*2;
+  const moving=Math.hypot(p.targetX-p.x,p.targetZ-p.z)>.8;
+  const bob=moving?Math.abs(Math.sin(walkPhase))*Math.min(5,rz*.035):0;
+  const sh=Math.min(500,Math.max(8,(focal/rz)*3.1)),aspect=sakuraSprite.naturalWidth/sakuraSprite.naturalHeight;
+  const rel=Math.atan2(Math.sin(p.yaw-camera.yaw),Math.cos(p.yaw-camera.yaw));
+  const abs=Math.abs(rel);
+  const view=abs<Math.PI/4?'front':abs<3*Math.PI/4?'side':'back';
+  const sideFactor=view==='side'?.42:view==='back'?.82:1;
+  const sw=sh*aspect*sideFactor;
+  x.save();x.translate(px,base-bob);
+  // Eight-step walk cycle: small cadence, alternating lean and shoe-level bob.
+  const lean=moving?Math.sin(walkPhase)*Math.min(1.8,rz*.012):0;
+  x.rotate(lean*Math.PI/180);
+  if(view==='side' && Math.sin(rel)<0)x.scale(-1,1);
+  if(view==='back')x.scale(-1,1);
+  if(view==='back'){x.globalAlpha=.94;}
+  x.drawImage(sakuraSprite,-sw/2,-sh,sw,sh);
+  x.restore();return;
+}
  const stride=Math.sin(frame*5+p.phase)*3.4,walk=Math.sin(frame*5+p.phase)*2.2;
  x.save();x.translate(px,base);x.scale(unit,unit);
  // Ground shadow
